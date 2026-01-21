@@ -8,7 +8,7 @@ router.use("/healthz", healthRoute);
 router.get("/", (req, res) => {
   res.status(200).json({
     status: "ok",
-    message: "auth_service is live"
+    message: "auth_service is live",
   });
 });
 
