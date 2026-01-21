@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # Install all dependencies (including devDependencies)
-RUN npm install
+RUN npm ci --only=production
 
 # Copy the rest of the source code
 COPY . .
@@ -18,15 +18,11 @@ FROM node:20-alpine
 
 WORKDIR /usr/src/app
 
-# Copy only the production dependencies from the builder stage
-COPY --from=builder /usr/src/app/package*.json ./
-RUN npm install --only=production
+# Copy everything from builder
+COPY --from=builder /usr/src/app ./
 
-# Copy the actual application code from the builder stage
-COPY --from=builder /usr/src/app .
+ENV NODE_ENV=production
 
-# Set the environment variable (Nginx will talk to this port)
-# This will be overridden by the 'expose' in docker-compose
-EXPOSE 5000 
+EXPOSE 5000
 
-CMD ["node", "index.js"]
+CMD ["node", "src/index.js"]
