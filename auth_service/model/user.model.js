@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema(
@@ -9,6 +10,7 @@ const UserSchema = new mongoose.Schema(
       trim: true,
       minLength: [3, "Username must be at least 3 characters"],
       maxLength: [30, "Username cannot exceed 30 characters"],
+      index: true,
     },
     email: {
       type: String,
@@ -16,6 +18,7 @@ const UserSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
+      index: true,
       match: [
         /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
         "Please provide a valid email address",
@@ -29,7 +32,7 @@ const UserSchema = new mongoose.Schema(
     },
     profilePic: {
       type: String,
-      default: "https://example.com/default-avatar.png",
+      default: "https://api.dicebear.com/9.x/thumbs/svg?seed=aaaaa",
       validate: {
         validator: function (v) {
           return /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/.test(v);
@@ -52,6 +55,16 @@ const UserSchema = new mongoose.Schema(
     toObject: { virtuals: true },
   },
 );
+
+UserSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
+
+UserSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
 
 const User = mongoose.model("User", UserSchema);
 
