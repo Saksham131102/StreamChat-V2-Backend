@@ -1,6 +1,12 @@
 import express from "express";
 import healthRoute from "./health.route.js";
-import { login, logout, signup } from "../controller/auth.controller.js";
+import {
+  login,
+  logout,
+  signup,
+  validateToken,
+  refreshToken,
+} from "../controller/auth.controller.js";
 
 const router = express.Router();
 
@@ -16,4 +22,6 @@ router.get("/", (req, res) => {
 router.post("/login", login);
 router.post("/signup", signup);
 router.post("/logout", logout);
+router.post("/refresh", refreshToken);
+router.get("/validate", validateToken);
 export default router;
