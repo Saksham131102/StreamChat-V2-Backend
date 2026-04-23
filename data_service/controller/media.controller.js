@@ -1,5 +1,20 @@
 import Media from "../model/media.model.js";
 
+// ── POST /create-media ───────────────────────────────────────────────────────────
+// export const createMedia = async (req, res) => {
+//   try {
+//     const media = new Media(req.body);
+//     const saved = await media.save();
+//     res.status(201).json({ message: "Media created successfully.", data: saved });
+//   } catch (error) {
+//     console.error("[createMedia]", error.message);
+//     if (error.name === "ValidationError") {
+//       return res.status(400).json({ message: error.message });
+//     }
+//     res.status(500).json({ message: "Failed to create media." });
+//   }
+// };
+
 // ── GET /trending?type=movie&limit=20 ─────────────────────────────────────
 export const getTrending = async (req, res) => {
   try {
@@ -75,5 +90,81 @@ export const searchMedia = async (req, res) => {
   } catch (error) {
     console.error("[searchMedia]", error.message);
     res.status(500).json({ message: "Failed to search media." });
+  }
+};
+
+
+// ── Helper function to check for missing values ──────────────────────────────
+// being used in createMedia controller
+const isMissing = (val) => val === null || val === undefined;
+
+// ── POST /create-media ───────────────────────────────────────────────────────────
+export const createMedia = async (req, res) => {
+  try {
+    const {
+      title,
+      type,
+      genres,
+      language,
+      release_date,
+      description,
+      trending_score,
+      view_count,
+      is_featured,
+      cast,
+      director,
+      search_tags,
+      meta,
+      media_assets,
+      seasons_summary,
+      total_seasons,
+      total_episodes
+    } = req.body;
+
+    if(!title ||
+      !type ||
+      !genres ||
+      !language ||
+      !release_date ||
+      !description ||
+      isMissing(trending_score) ||
+      isMissing(view_count) ||
+      typeof is_featured !== "boolean" ||
+      !cast ||
+      !director ||
+      !search_tags ||
+      !media_assets){
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    const media = new Media({
+      title,
+      type,
+      genres,
+      language,
+      release_date,
+      description,
+      trending_score,
+      view_count,
+      is_featured,
+      cast,
+      director,
+      search_tags,
+      meta,
+      media_assets,
+      seasons_summary,
+      total_seasons,
+      total_episodes
+    });
+
+    const saved = await media.save();
+
+    res.status(201).json({ message: "Media created successfully.", data: saved });
+  } catch (error) {
+    console.error("[createMedia] -> ", error.message);
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ message: error.message });
+    }
+    res.status(500).json({ message: "Failed to create media." });
   }
 };

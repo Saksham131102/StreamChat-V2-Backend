@@ -44,9 +44,14 @@ const MediaSchema = new mongoose.Schema(
       required: [true, "Media type is required"],
       index: true,
     },
-    genres: [{ type: String, trim: true }],
+    genres: [{ type: String, trim: true, required: [true, "Genres are required"] }],
     language: { type: String, trim: true, default: "en" },
-    release_date: { type: Date },
+    release_date: { type: Date, required: [true, "Release date is required"] },
+    description: {
+      type: String,
+      trim: true,
+      required: [true, "Description is required"],
+    },
 
     // Discovery & ranking
     trending_score: { type: Number, default: 0, index: true },
@@ -54,9 +59,9 @@ const MediaSchema = new mongoose.Schema(
     is_featured: { type: Boolean, default: false, index: true },
 
     // People
-    cast: [{ type: String, trim: true }],
-    director: { type: String, trim: true },
-    search_tags: [{ type: String, trim: true }],
+    cast: [{ type: String, trim: true, required: [true, "Cast is required"] }],
+    director: { type: String, trim: true, required: [true, "Director is required"] },
+    search_tags: [{ type: String, trim: true, required: [true, "Search tags are required"] }],
 
     // Movie-specific metadata
     meta: {
@@ -72,9 +77,19 @@ const MediaSchema = new mongoose.Schema(
     },
 
     // Series / TV only
-    seasons_summary: [seasonSummarySchema],
-    total_seasons: { type: Number },
-    total_episodes: { type: Number },
+    // Movies will have undefined
+    seasons_summary: {
+      type: [seasonSummarySchema],
+      default: undefined,
+    },
+    total_seasons: {
+      type: Number,
+      default: undefined,
+    },
+    total_episodes: {
+      type: Number,
+      default: undefined,
+    },
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
