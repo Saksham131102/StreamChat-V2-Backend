@@ -5,15 +5,9 @@ import episodeRoute from "./episode.route.js";
 
 const router = express.Router();
 
+router.get("/favicon.ico", (req, res) => res.status(204).end());
 router.use("/healthz", healthRoute);
 router.use("/", mediaRoute);
 router.use("/episodes", episodeRoute);
-
-// router.get("/", (req, res) => {
-//   res.status(200).json({
-//     status: "ok",
-//     message: "data_service is live"
-//   });
-// });
 
 export default router;

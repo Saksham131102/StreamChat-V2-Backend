@@ -9,16 +9,16 @@ import {
 
 const router = express.Router();
 
-// POST /media
+// POST /media/create-media
 router.post("/create-media", createMedia);
 
-// GET /trending?type=movie|web_series|tv&limit=20
+// GET /media/trending?type=movie|web_series|tv&limit=20
 router.get("/trending", getTrending);
 
-// GET /featured?limit=10
+// GET /media/featured?limit=10
 router.get("/featured", getFeatured);
 
-// GET /search?q=Batman&type=movie&limit=20
+// GET /media/search?q=Batman&type=movie&limit=20
 router.get("/search", searchMedia);
 
 // GET /media/:id
