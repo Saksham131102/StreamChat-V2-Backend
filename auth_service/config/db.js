@@ -1,21 +1,18 @@
-import mongoose from "mongoose";
+import prisma from "../lib/prisma.js";
 
 const connectDB = async (retries = process.env.DB_RETRY_LIMIT || 5) => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      autoIndex: false,
-      serverSelectionTimeoutMS: 5000,
-    });
+    await prisma.$connect();
 
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log("PostgreSQL connected via Prisma");
   } catch (error) {
     console.error(
-      `MongoDB Connection failed. Retries left: ${retries - 1}`,
+      `PostgreSQL Connection failed. Retries left: ${retries - 1}`,
       error.message,
     );
 
     if (retries <= 1) {
-      console.error("MongoDB connection failed permanently. Exiting...");
+      console.error("PostgreSQL connection failed permanently. Exiting...");
       process.exit(1);
     }
 

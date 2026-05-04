@@ -1,6 +1,7 @@
-import User from "../model/user.model.js";
+import prisma from "../lib/prisma.js";
 import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 
 export const signup = async (req, res) => {
   try {
@@ -11,30 +12,28 @@ export const signup = async (req, res) => {
       return res.status(400).json({ error: "Passwords do not match" });
     }
 
-    // checking whether a user with same username exists in database
-    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
-    if (existingUser) {
-      const field = existingUser.username === username ? "username" : "email";
-      return res.status(400).json({ error: `${field} already exists` });
-    }
-
     const seedProfilePic = `https://api.dicebear.com/9.x/thumbs/svg?seed=${username}`;
 
+    // Hashing password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     // Create new user
-    const newUser = new User({
-      username,
-      email,
-      password,
-      profilePic: seedProfilePic,
-      isAdmin: false,
-      lastLogin: new Date(),
+    const newUser = await prisma.user.create({
+      data: {
+        username,
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        profilePic: seedProfilePic,
+        isAdmin: false,
+        lastLogin: new Date(),
+      },
     });
 
     if (newUser) {
-      await newUser.save();
-      const accessToken = generateTokenAndSetCookie(newUser._id, res);
+      const accessToken = generateTokenAndSetCookie(newUser.id, res);
       return res.status(201).json({
-        _id: newUser._id,
+        id: newUser.id,
         username: newUser.username,
         email: newUser.email,
         profilePic: seedProfilePic,
@@ -47,6 +46,11 @@ export const signup = async (req, res) => {
         .json({ error: "Failed to create user. Try again!!!" });
     }
   } catch (error) {
+    // Handling Unique Constraint
+    if (error.code === "P2002") {
+      const field = error.meta?.target?.[0] || "field";
+      return res.status(400).json({ error: `${field} already exists` });
+    }
     console.log("Error in signup controller --> ", error.message);
     res.status(500).json({ error: "Internal Server Error" });
   }
@@ -62,28 +66,35 @@ export const login = async (req, res) => {
         .json({ error: "Please provide email and password" });
     }
 
-    // Find user & include password (since select: false in schema)
-    const user = await User.findOne({ email }).select("+password");
+    const user = await prisma.user.findUnique({
+      where: {
+        email: email.toLowerCase(),
+      },
+    });
 
-    // Verify user exists and password is correct
-    // We use a generic error message to prevent "User Enumeration" attacks
-    if (!user || !(await user.matchPassword(password))) {
+    if(!user) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    // Update audit fields (last login)
-    await User.findByIdAndUpdate(
-      user._id,
-      { lastLogin: new Date() },
-      { new: true },
-    );
+    const isMatch = await bcrypt.compare(password, user.password);
+    if(!isMatch) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
 
-    // Generate tokens
-    const accessToken = generateTokenAndSetCookie(user._id, res);
+    // update last login
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        lastLogin: new Date(),
+      },
+    });
+    
+    const accessToken = generateTokenAndSetCookie(user.id, res);
 
-    // Return user data
     return res.status(200).json({
-      _id: user._id,
+      id: user.id,
       username: user.username,
       email: user.email,
       profilePic: user.profilePic,
@@ -156,13 +167,17 @@ export const refreshToken = async (req, res) => {
     }
 
     // 3. Look up user to ensure they still exist (optional but secure)
-    const user = await User.findById(decoded.userId);
+    const user = await prisma.user.findUnique({
+      where: {
+        id: decoded.userId,
+      },
+    });
     if (!user) {
       return res.status(401).json({ error: "Unauthorized - User not found" });
     }
 
     // 4. Generate a new access token
-    const newAccessToken = jwt.sign({ userId: user._id }, process.env.JWT_ACCESS_SECRET, {
+    const newAccessToken = jwt.sign({ userId: user.id }, process.env.JWT_ACCESS_SECRET, {
       expiresIn: "15m",
     });
 

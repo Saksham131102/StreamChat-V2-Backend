@@ -1,9 +1,10 @@
+import "dotenv/config";
 import express from "express";
-import dotenv from "dotenv";
 import authRoute from "./routes/auth.routes.js";
 import connectDB from "./config/db.js";
 
-dotenv.config();
+import prisma from "./lib/prisma.js";
+
 const app = express();
 app.use(express.json());
 
