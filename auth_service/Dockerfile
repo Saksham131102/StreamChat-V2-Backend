@@ -8,10 +8,16 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # Install all dependencies (including devDependencies)
-RUN npm ci --only=production
+RUN npm ci
+
+# Copy Prisma files first (to share cache)
+COPY prisma ./prisma
+# Generate Prisma Client
+RUN npx prisma generate
 
 # Copy the rest of the source code
 COPY . .
+
 
 # --- Stage 2: Runtime ---
 FROM node:20-alpine
@@ -23,6 +29,6 @@ COPY --from=builder /usr/src/app ./
 
 ENV NODE_ENV=production
 
-EXPOSE 5000
+EXPOSE 3000
 
 CMD ["node", "src/index.js"]

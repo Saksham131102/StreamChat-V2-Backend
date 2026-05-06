@@ -1,0 +1,127 @@
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/proxy_params:/etc/nginx/proxy_params:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      auth_service:
+        condition: service_healthy
+      chat_service:
+        condition: service_healthy
+      data_service:
+        condition: service_healthy
+    networks:
+      - microservice_network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  auth_service:
+    build: ./auth_service
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - DB_URI=${AUTH_DB_URI}
+    expose:
+      - "3000"
+    networks:
+      - microservice_network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  chat_service:
+    build: ./chat_service
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - DB_URI=${CHAT_DB_URI}
+    expose:
+      - "3001"
+    networks:
+      - microservice_network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  data_service:
+    build: ./data_service
+    environment:
+      - PORT=3002
+      - NODE_ENV=production
+      - DB_URI=${DATA_DB_URI}
+    expose:
+      - "3002"
+    networks:
+      - microservice_network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 256M
+
+networks:
+  microservice_network:
+    driver: bridge

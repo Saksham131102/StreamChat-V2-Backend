@@ -3,8 +3,6 @@ import express from "express";
 import authRoute from "./routes/auth.routes.js";
 import connectDB from "./config/db.js";
 
-import prisma from "./lib/prisma.js";
-
 const app = express();
 app.use(express.json());
 

@@ -27,6 +27,6 @@ COPY --from=builder /usr/src/app .
 
 # Set the environment variable (Nginx will talk to this port)
 # This will be overridden by the 'expose' in docker-compose
-EXPOSE 5000 
+EXPOSE 3002
 
 CMD ["node", "index.js"]

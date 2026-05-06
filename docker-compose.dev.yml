@@ -1,0 +1,103 @@
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/proxy_params:/etc/nginx/proxy_params:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - auth_service
+      - chat_service
+      - data_service
+    networks:
+      - microservice_network
+  
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=flemoid13
+      - POSTGRES_DB=postgres
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - microservice_network
+    restart: always
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  auth_service:
+    build:
+      context: ./auth_service
+      dockerfile: Dockerfile
+    command: sh -c "npx prisma generate && npx prisma migrate dev --name init && node --watch index.js"
+    volumes:
+      - ./auth_service:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - PORT=3000
+      - NODE_ENV=development
+      - DATABASE_URL=${AUTH_DB_URI}
+    expose:
+      - "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - microservice_network
+
+  chat_service:
+    build:
+      context: ./chat_service
+      dockerfile: Dockerfile
+    command: node --watch index.js
+    volumes:
+      - ./chat_service:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - PORT=3001
+      - NODE_ENV=development
+    expose:
+      - "3001"
+    networks:
+      - microservice_network
+
+  data_service:
+    build:
+      context: ./data_service
+      dockerfile: Dockerfile
+    command: node --watch index.js
+    volumes:
+      - ./data_service:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - PORT=3002
+      - NODE_ENV=development
+    expose:
+      - "3002"
+    networks:
+      - microservice_network
+
+networks:
+  microservice_network:
+    driver: bridge
