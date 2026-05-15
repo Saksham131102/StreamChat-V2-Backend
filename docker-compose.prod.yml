@@ -30,6 +30,41 @@ services:
         reservations:
           memory: 64M
 
+  valkey:
+    image: valkey/valkey:8
+    command: >
+      valkey-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${VALKEY_PASSWORD}
+      --bind 0.0.0.0
+      --protected-mode yes
+    expose:
+      - "6379"
+    volumes:
+      - valkey-data:/data
+    networks:
+      - microservice_network
+    restart: always
+    healthcheck:
+      test: ["CMD", "valkey-cli", "-a", "${VALKEY_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          memory: 128M
+
   auth_service:
     build: ./auth_service
     environment:
@@ -98,8 +133,12 @@ services:
       - PORT=3002
       - NODE_ENV=production
       - DB_URI=${DATA_DB_URI}
+      - VALKEY_HOST=valkey
+      - VALKEY_PORT=6379
     expose:
       - "3002"
+    depends_on:
+      - valkey
     networks:
       - microservice_network
     restart: always
