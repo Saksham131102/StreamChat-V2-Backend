@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const connectDB = async (retries = process.env.DB_RETRY_LIMIT || 5) => {
+export const connectDB = async (retries = process.env.DB_RETRY_LIMIT || 5) => {
   try {
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       autoIndex: false,
@@ -27,4 +27,12 @@ const connectDB = async (retries = process.env.DB_RETRY_LIMIT || 5) => {
   }
 };
 
-export default connectDB;
+export const closeDBConnection = async () => {
+  try {
+    await mongoose.disconnect();
+    console.log('MongoDB Connection Closed');
+  } catch (error) {
+    console.error('Error closing MongoDB connection: ', error);
+    throw error;
+  }
+};

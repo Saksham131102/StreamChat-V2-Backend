@@ -1,4 +1,10 @@
 import Media from "../model/media.model.js";
+import { 
+  getTrendingCache,
+  setTrendingCache,
+  getFeaturedCache,
+  setFeaturedCache 
+} from "../cache/media.cache.js";
 
 // ── POST /create-media ───────────────────────────────────────────────────────────
 // export const createMedia = async (req, res) => {
@@ -23,12 +29,18 @@ export const getTrending = async (req, res) => {
     const filter = {};
     if (type) filter.type = type;
 
+    const cachedData = await getTrendingCache(type, limit);
+    if(cachedData){
+      return res.status(200).json({ data: cachedData, fromCache: true });
+    }
+
     const items = await Media.find(filter)
       .sort({ trending_score: -1 })
       .limit(Number(limit))
       .select("-__v");
 
-    res.status(200).json({ data: items });
+    await setTrendingCache(type, limit, items);
+    res.status(200).json({ data: items, fromCache: false });
   } catch (error) {
     console.error("[getTrending]", error.message);
     res.status(500).json({ message: "Failed to fetch trending media." });
@@ -40,12 +52,18 @@ export const getFeatured = async (req, res) => {
   try {
     const { limit = 10 } = req.query;
 
+    const cachedData = await getFeaturedCache(limit);
+    if(cachedData){
+      return res.status(200).json({ data: cachedData, fromCache: true });
+    }
+
     const items = await Media.find({ is_featured: true })
       .sort({ trending_score: -1 })
       .limit(Number(limit))
       .select("-__v");
 
-    res.status(200).json({ data: items });
+    await setFeaturedCache(limit, items);
+    res.status(200).json({ data: items, fromCache: false });
   } catch (error) {
     console.error("[getFeatured]", error.message);
     res.status(500).json({ message: "Failed to fetch featured media." });
