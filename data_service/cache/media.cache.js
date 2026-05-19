@@ -1,4 +1,4 @@
-import { getValkeyClient } from "../config/valkey";
+import { getValkeyClient } from "../config/valkey.js";
 
 // 60 minutes + 5 minutes random
 const MEDIA_TTL = 3600 + Math.floor(Math.random() * 300);
