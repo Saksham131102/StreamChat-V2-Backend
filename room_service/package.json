@@ -1,0 +1,17 @@
+{
+  "name": "room_service",
+  "version": "1.0.0",
+  "description": "A backend microservice that handles room creation, join url shortener, adding participants in the room",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongoose": "^9.6.2"
+  }
+}

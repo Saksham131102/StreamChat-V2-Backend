@@ -1,0 +1,35 @@
+import mongoose from "mongoose";
+
+export const connectDB = async (retries = process.env.DB_RETRY_LIMIT || 5) => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      autoIndex: false,
+      serverSelectionTimeoutMS: 5000,
+    });
+
+    console.log("MongoDB connected: ", conn.connection.host);
+  } catch (error) {
+    console.error(`MongoDB connection failed. Retries left: ${retries - 1}`, error.message);
+
+    if(retries <= 1) {
+      console.error("MongoDB connection failed permanently. Exiting...");
+      process.exit(1);
+    }
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, process.env.DB_RETRY_LIMIT || 5000);
+    });
+
+    return connectDB(retries - 1);
+  }
+};
+
+export const closeDBConnection = async () => {
+  try {
+    await mongoose.disconnect();
+    console.log("MongoDB connection closed.");
+  } catch (error) {
+    console.error('Error closing MongoDB connection: ', error);
+    throw new Error;
+  }
+}

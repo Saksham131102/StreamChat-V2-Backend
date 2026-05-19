@@ -116,6 +116,22 @@ services:
         condition: service_healthy
     networks:
       - microservice_network
+  
+  room_service:
+    build:
+      context: ./room_service
+      dockerfile: Dockerfile
+    command: node --watch index.js
+    volumes:
+      - ./room_service:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - PORT=3003
+      - NODE_ENV=development
+    expose:
+      - "3003"
+    networks:
+      - microservice_network
 
 networks:
   microservice_network:
