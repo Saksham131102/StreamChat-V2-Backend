@@ -1,5 +1,6 @@
 import express from "express";
 import healthRoute from "./health.route.js";
+import userRoute from "./user.route.js"
 import {
   login,
   logout,
@@ -11,6 +12,7 @@ import {
 const router = express.Router();
 
 router.use("/healthz", healthRoute);
+router.use("/users", userRoute);
 
 router.get("/", (req, res) => {
   res.status(200).json({

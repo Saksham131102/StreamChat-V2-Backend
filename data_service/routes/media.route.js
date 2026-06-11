@@ -9,8 +9,8 @@ import {
 
 const router = express.Router();
 
-// POST /media/create-media
-router.post("/create-media", createMedia);
+// POST /media
+router.post("/", createMedia);
 
 // GET /media/trending?type=movie|web_series|tv&limit=20
 router.get("/trending", getTrending);
