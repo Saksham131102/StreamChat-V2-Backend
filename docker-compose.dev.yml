@@ -91,8 +91,14 @@ services:
     environment:
       - PORT=3001
       - NODE_ENV=development
+      - MONGODB_URI=${CHAT_DB_URI}
+      - REDIS_HOST=valkey
+      - REDIS_PORT=6379
     expose:
       - "3001"
+    depends_on:
+      valkey:
+        condition: service_healthy
     networks:
       - microservice_network
 

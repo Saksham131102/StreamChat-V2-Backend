@@ -79,9 +79,9 @@ export const createRoom = async (req, res) => {
 export const getRoomById = async (req, res) => {
     try {
         const { roomId } = req.body;
-        const host_id = req.headers['x-user-id'];
+        const userId = req.headers['x-user-id'];
 
-        if (!host_id) {
+        if (!userId) {
             return res.status(401).json({
                 status: "fail",
                 message: "Unauthorized",
@@ -95,9 +95,7 @@ export const getRoomById = async (req, res) => {
             });
         }
 
-        const roomDoc = await Room.findById(roomId)
-            .select('room_name is_private host_id media_id participants')
-            .lean();
+        const roomDoc = await Room.findById(roomId);
 
         if (!roomDoc) {
             return res.status(404).json({
@@ -106,18 +104,27 @@ export const getRoomById = async (req, res) => {
             });
         }
 
-        const room = { ...roomDoc };
+        // 1. If it's a private room and the user is NOT a participant (and not the host)
+        const isParticipant = roomDoc.participants.includes(userId);
+        const isHost = roomDoc.host_id.toString() === userId.toString();
 
-        // need to make api call to auth_service to get participants full details
-        /*
-        [
-          {
-            id:
-            username:
-            profilePic:
-          }
-        ]
-        */
+        if (roomDoc.is_private && !isParticipant && !isHost) {
+            return res.status(403).json({
+                status: "fail",
+                message: "Password required",
+                is_private: true
+            });
+        }
+
+        // 2. If it's a public room and the user is not a participant, automatically join them
+        if (!roomDoc.is_private && !isParticipant) {
+            roomDoc.participants.push(userId);
+            await roomDoc.save();
+        }
+
+        const room = roomDoc.toObject();
+
+        // 3. Fetch participants full details
         if (room.participants && room.participants.length > 0) {
             try {
                 const participantsDetails = await axios.post('http://auth_service:3000/users/batch', {
@@ -126,7 +133,6 @@ export const getRoomById = async (req, res) => {
                 room.participants = participantsDetails.data.data;
             } catch (error) {
                 console.error("Error fetching participants details:", error);
-                // if any fail to fetch the details
                 room.participants = [];
             }
         }
@@ -136,13 +142,87 @@ export const getRoomById = async (req, res) => {
             message: "Room fetched successfully",
             data: {
                 room,
-                is_owner: room.host_id.toString() === host_id.toString()
+                is_owner: isHost
             }
-        })
-
+        });
 
     } catch (error) {
         console.error("Error in getRoomById controller --> ", error.message);
+        return res.status(500).json({
+            status: "error",
+            message: "Internal server error",
+        });
+    }
+}
+
+export const joinRoom = async (req, res) => {
+    try {
+        const { roomId, password } = req.body;
+        const userId = req.headers['x-user-id'];
+
+        if (!userId) {
+            return res.status(401).json({
+                status: "fail",
+                message: "Unauthorized",
+            });
+        }
+
+        if (!roomId) {
+            return res.status(400).json({
+                status: "fail",
+                message: "Room Id is required",
+            });
+        }
+
+        const room = await Room.findById(roomId);
+
+        if (!room) {
+            return res.status(404).json({
+                status: "fail",
+                message: "Room not found",
+            });
+        }
+
+        // Check if user is already participant/host
+        const isParticipant = room.participants.includes(userId);
+        const isHost = room.host_id.toString() === userId.toString();
+
+        if (isParticipant || isHost) {
+            return res.status(200).json({
+                status: "success",
+                message: "Already in the room",
+            });
+        }
+
+        // Check password if private
+        if (room.is_private) {
+            if (!password) {
+                return res.status(400).json({
+                    status: "fail",
+                    message: "Password is required for private rooms",
+                });
+            }
+
+            const isMatch = await bcrypt.compare(password, room.password);
+            if (!isMatch) {
+                return res.status(401).json({
+                    status: "fail",
+                    message: "Incorrect password",
+                });
+            }
+        }
+
+        // Add user to participants list
+        room.participants.push(userId);
+        await room.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "Successfully joined the room",
+        });
+
+    } catch (error) {
+        console.error("Error in joinRoom controller --> ", error.message);
         return res.status(500).json({
             status: "error",
             message: "Internal server error",
