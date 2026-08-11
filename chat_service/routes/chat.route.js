@@ -1,5 +1,6 @@
 import express from "express";
 import healthRoute from "./health.route.js";
+import { fetchAllMessagesController } from "../controller/chat.controller.js";
 
 const router = express.Router();
 
@@ -11,5 +12,7 @@ router.get("/", (req, res) => {
     message: "chat_service is live"
   });
 });
+
+router.get("/:roomId", fetchAllMessagesController);
 
 export default router;

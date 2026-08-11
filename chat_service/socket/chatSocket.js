@@ -60,7 +60,7 @@ export const registerChatSocket = (io) => {
       socket.leave(roomId);
       console.log(`[Socket] userId=${userId} left room=${roomId}`);
       // Notify other participants in the room
-      socket.to(roomId).emit("user_left", { userId });
+      socket.to(roomId).emit("user_left", { userId, username });
     });
 
     // ── disconnecting ──────────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ export const registerChatSocket = (io) => {
       // Notify rooms that the user is disconnecting
       for (const roomId of socket.rooms) {
         if (roomId !== socket.id) {
-          socket.to(roomId).emit("user_left", { userId });
+          socket.to(roomId).emit("user_left", { userId, username });
         }
       }
     });
