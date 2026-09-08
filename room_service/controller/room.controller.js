@@ -229,3 +229,64 @@ export const joinRoom = async (req, res) => {
         });
     }
 }
+
+export const closeRoom = async (req, res) => {
+    try {
+        const { roomId } = req.body;
+        const host_id = req.headers['x-user-id'];
+
+        if (!host_id) {
+            return res.status(401).json({
+                status: "fail",
+                message: "Unauthorized",
+            });
+        }
+
+        if (!roomId) {
+            return res.status(400).json({
+                status: "fail",
+                message: "Room Id is required",
+            });
+        }
+
+        const room = await Room.findById(roomId);
+
+        if (!room) {
+            return res.status(404).json({
+                status: "fail",
+                message: "Room not found",
+            });
+        }
+
+        // Verify that the caller is indeed the host
+        if (room.host_id.toString() !== host_id.toString()) {
+            return res.status(403).json({
+                status: "fail",
+                message: "Only the host can close the watch party",
+            });
+        }
+
+        // Step 1: Delete all conversations and chat messages from chat_service database
+        // and notify connected participants via WebSocket
+        try {
+            await axios.delete(`http://chat_service:3001/${roomId}`);
+        } catch (chatError) {
+            console.error("Error clearing chat messages in chat_service:", chatError.message);
+        }
+
+        // Step 2: Delete the room completely from DB
+        await Room.findByIdAndDelete(roomId);
+
+        return res.status(200).json({
+            status: "success",
+            message: "Room and all associated chats closed and deleted successfully",
+        });
+
+    } catch (error) {
+        console.error("Error in closeRoom controller --> ", error.message);
+        return res.status(500).json({
+            status: "error",
+            message: "Internal server error",
+        });
+    }
+};
