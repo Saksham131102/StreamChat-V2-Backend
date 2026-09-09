@@ -1,4 +1,5 @@
 import { getValkeyClient } from "../config/valkey.js";
+import { TimeUnit } from "@valkey/valkey-glide";
 
 // 60 minutes + 5 minutes random
 const MEDIA_TTL = 3600 + Math.floor(Math.random() * 300);
@@ -29,7 +30,12 @@ export const setTrendingCache = async (type, limit, data) => {
   try {
     const client = getValkeyClient();
     const key = `trending:${type || "all"}:${limit}`;
-    await client.setEx(key, MEDIA_TTL, JSON.stringify(data));
+    await client.set(key, JSON.stringify(data), {
+      expiry: {
+        type: TimeUnit.Seconds,
+        count: MEDIA_TTL,
+      },
+    });
     console.log(`[Cache] Cache set for ${type} trending media`);
   } catch (error) {
     console.error("Error setting trending cache:", error);
@@ -62,7 +68,12 @@ export const setFeaturedCache = async (limit, data) => {
   try {
     const client = getValkeyClient();
     const key = `featured:${limit}`;
-    await client.setEx(key, MEDIA_TTL, JSON.stringify(data));
+    await client.set(key, JSON.stringify(data), {
+      expiry: {
+        type: TimeUnit.Seconds,
+        count: MEDIA_TTL,
+      },
+    });
     console.log(`[Cache] Cache set for featured media`);
   } catch (error) {
     console.error("Error setting featured cache:", error);
