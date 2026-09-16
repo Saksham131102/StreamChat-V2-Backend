@@ -54,6 +54,26 @@ export const registerChatSocket = (io) => {
       io.to(roomId).emit("new_message", messageObj);
     });
 
+    // ── media_sync ─────────────────────────────────────────────────────────────
+    socket.on("media_sync", (payload) => {
+      if (!payload?.roomId) return;
+      // Broadcast to other participants in the room except the sender
+      socket.to(payload.roomId).emit("media_sync", {
+        ...payload,
+        senderId: userId,
+      });
+    });
+
+    // ── request_media_sync ─────────────────────────────────────────────────────
+    socket.on("request_media_sync", ({ roomId }) => {
+      if (!roomId) return;
+      // Ask host / existing room participants to send current playback state
+      socket.to(roomId).emit("request_media_sync", {
+        requesterSocketId: socket.id,
+        requesterUserId: userId,
+      });
+    });
+
     // ── leave_room ─────────────────────────────────────────────────────────────
     socket.on("leave_room", ({ roomId }) => {
       if (!roomId) return;
